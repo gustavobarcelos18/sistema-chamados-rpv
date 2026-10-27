@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum TipoPessoa {
+  SOLICITANTE
+  TECNICO
+}
+
+enum Prioridade {
+  BAIXA
+  MEDIA
+  ALTA
+  CRITICA
+}
+
+enum SituacaoChamado {
+  ABERTO
+  EM_ATENDIMENTO
+  RESOLVIDO
+  FECHADO
+  CANCELADO
+}
+
+model Pessoa {
+  id                Int          @id @default(autoincrement())
+  nome              String       @db.VarChar(191)
+  email             String       @unique @db.VarChar(191)
+  tipo              TipoPessoa
+  ativo             Boolean      @default(true)
+  chamadosAbertos   Chamado[]    @relation("Solicitante")
+  chamadosAtendidos Chamado[]    @relation("Tecnico")
+  comentarios       Comentario[]
+}
+
+model TipoProblema {
+  id       Int       @id @default(autoincrement())
+  nome     String    @unique @db.VarChar(191)
+  ativo    Boolean   @default(true)
+  chamados Chamado[]
+}
+
+model Chamado {
+  id             Int             @id @default(autoincrement())
+  titulo         String          @db.VarChar(100)
+  descricao      String          @db.Text
+  prioridade     Prioridade      @default(MEDIA)
+  situacao       SituacaoChamado @default(ABERTO)
+  criadoEm       DateTime        @default(now())
+  resolvidoEm    DateTime?
+
+  solicitanteId  Int
+  solicitante    Pessoa          @relation("Solicitante", fields: [solicitanteId], references: [id])
+
+  tecnicoId      Int?
+  tecnico        Pessoa?         @relation("Tecnico", fields: [tecnicoId], references: [id])
+
+  tipoProblemaId Int
+  tipoProblema   TipoProblema    @relation(fields: [tipoProblemaId], references: [id])
+
+  comentarios    Comentario[]
+
+  @@index([situacao])
+  @@index([tecnicoId, situacao])
+}
+
+model Comentario {
+  id        Int      @id @default(autoincrement())
+  texto     String   @db.Text
+  criadoEm  DateTime @default(now())
+
+  chamadoId Int
+  chamado   Chamado  @relation(fields: [chamadoId], references: [id])
+
+  autorId   Int
+  autor     Pessoa   @relation(fields: [autorId], references: [id])
+}
